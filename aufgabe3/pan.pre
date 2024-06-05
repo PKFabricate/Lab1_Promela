@@ -1,0 +1,84 @@
+# 0 "protocol1.pml"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "protocol1.pml"
+
+
+
+
+
+
+chan network = [8] of {bit, byte, byte, bit} ;
+
+active proctype P() {
+    byte nextToSend;
+    byte nextAckExpected;
+    byte frameExpected;
+    byte nBuffered;
+    bit sendTo = (_pid+1)%2
+
+    bit buffered[8];
+
+    byte sequence, ack
+    bit received
+
+    do
+        ::nBuffered<7 +1 ->{
+                    bit selected
+                    select(selected: 0..1);
+                    buffered[nBuffered]=selected;
+                    printf("%d Seq %d is %d\n", _pid, nextToSend, selected);
+                    network ! sendTo, nextToSend, nextAckExpected, buffered[nBuffered];
+                    nBuffered =nBuffered+1;
+                    nextToSend = nextToSend+1;
+        }
+
+
+        ::network? eval(_pid), sequence, ack, received->{
+            if
+                ::sequence==frameExpected->{
+                    frameExpected= (frameExpected+1);
+                    byte i, x;
+                    for (i:nextAckExpected..ack){
+                        for (x:0..nBuffered-2){
+                            buffered[x]=buffered[x+1]
+                        }
+                        nBuffered = nBuffered-1;
+                    }
+                    nextAckExpected=(ack+1);
+                }
+                ::else
+            fi
+        }
+        ::timeout->{
+            byte i;
+            for(i:0..nBuffered-1){
+                network ! sendTo, nextAckExpected+i, nextAckExpected, buffered[i];
+                printf("RESEND Seq %d is %d\n", nextAckExpected+i, buffered[i]);
+            }
+        }
+
+    od
+}
+
+active proctype Q() {
+    byte nextToSend;
+    byte frameExpected;
+    bit sendTo = (_pid+1)%2
+
+    byte sequence, ack
+    bit received
+    do
+        ::network? eval(_pid), sequence, ack, received ->{
+            if
+                ::sequence==frameExpected->{
+                    network ! sendTo, nextToSend, sequence, 0;
+                    printf ("Got on %d the %d, sending %d\n",sequence, received, nextToSend)
+                    nextToSend = nextToSend+1;
+                    frameExpected= frameExpected+1;
+                }
+                :: else
+            fi
+        }
+    od
+}
