@@ -35,7 +35,7 @@ active proctype P() {
                     frameExpected= (frameExpected+1); 
                     byte i, x; //Remove acknowledged packets queue-style
                     byte amount = ack-nextAckExpected   //over/underflow prevention
-                    for (i:0..amount){  
+                    for (i:0..amount){ 
                         for (x:0..nBuffered-2){ 
                             buffered[x]=buffered[x+1]
                         }
@@ -43,7 +43,8 @@ active proctype P() {
                     }
                     nextAckExpected=(ack+1);
                 }
-                ::else   //Reject Frame
+                ::else   //Reject Frame 
+                
             fi
         }
         ::timeout->{
@@ -67,11 +68,13 @@ active proctype Q() {
         ::network? eval(_pid), sequence, ack, received ->{
             if 
                 ::sequence==frameExpected->{
+                    assert(nextToSend==sequence);
                     network ! sendTo, nextToSend, sequence, 0;
                     nextToSend = nextToSend+1;
                     frameExpected= frameExpected+1;
                 }
                 :: else //Reject
+                ::skip  //Package got lost *Note that due to Q being simplified, it can't handle any Q->P messages being lost due to never resending them
             fi
         }
     od
