@@ -40,6 +40,9 @@ active proctype P() {
 	:: geldRueckgabe(); geld = places[0] + places[1] + places[3]; assert(geld == gesamtGeld);
    	:: kaufAktion(); geld = places[0] + places[1] + places[3]; assert(geld == gesamtGeld);
 	:: keksEssen(); geld = places[0] + places[1] + places[3];  assert(geld == gesamtGeld);
+	:: places[2] == 0 || places[0] == 0 -> break;
     	od;
+
+end: printf("Keine Kekse mehr verfügbar\n");
 
 }
